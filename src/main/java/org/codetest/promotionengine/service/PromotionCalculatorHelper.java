@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class PromotionCalculatorHelper {
+
     private Map<String,Double> itemSkuDefaultPrices = new HashMap<>();
 
     public PromotionCalculatorHelper() {
@@ -22,6 +23,51 @@ public class PromotionCalculatorHelper {
         itemSkuDefaultPrices.put("D",15.0);
     }
 
+    private boolean isPromotionMutualExclusive(Promotion promotion, Map<String,Integer> promotionAppliedItems){
+        boolean isPossible = true;
+        if(promotionAppliedItems !=null && !promotionAppliedItems.isEmpty()){
+            List<PromotionItemSKU> promotionItemSKUsFiltered = promotion.getPromotionItemSKUs().stream().filter(promotionItemSKU-> promotionAppliedItems.containsKey(promotionItemSKU.getSku()))
+                    .collect(Collectors.toList());
+            if(promotionItemSKUsFiltered != null && !promotionItemSKUsFiltered.isEmpty()){
+                isPossible = false;
+            }
+        }
+        return isPossible;
+    }
+
+    public boolean isPromotionEligible(Promotion promotion,List<PromotionItemSKU> itemOrdered,Map<String,Integer> promotionAppliedItems){
+        boolean isEligible = false;
+        if(isPromotionMutualExclusive(promotion,promotionAppliedItems)){
+            Map<String,Boolean> statusMap = new HashMap<>();
+            for(PromotionItemSKU promotionItemSKU : promotion.getPromotionItemSKUs()){
+                if(promotion.getPromotionItemSKUs().size()>1) {
+                    for(PromotionItemSKU item : itemOrdered) {
+                        if(item.getSku().equals(promotionItemSKU.getSku()) && item.getQuantity()>= promotionItemSKU.getQuantity() ){
+                            statusMap.put(item.getSku(),true);
+                            break;
+                        }
+                    }
+                    if(promotion.getPromotionItemSKUs().size() == statusMap.size()){
+                        isEligible = true;
+                        for(Map.Entry<String,Boolean> mapEntry : statusMap.entrySet()){
+                            if(!mapEntry.getValue()){
+                                isEligible = false;
+                                break;
+                            }
+                        }
+                    }
+                }else{
+                    for(PromotionItemSKU item : itemOrdered) {
+                        if(item.getSku().equals(promotionItemSKU.getSku()) && item.getQuantity() >= promotionItemSKU.getQuantity()) {
+                            isEligible = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return isEligible;
+    }
 
     public double calculateFinalPrice(List<Promotion> promotions,List<PromotionItemSKU> itemsOrdered,Map<String,Integer> promotionAppliedItems){
         AtomicReference<Double> finalPrice = new AtomicReference<>((double) 0);
@@ -67,19 +113,6 @@ public class PromotionCalculatorHelper {
 
 
         return finalPrice.get();
-    }
-
-
-    private boolean isPromotionMutualExclusive(Promotion promotion, Map<String,Integer> promotionAppliedItems){
-        boolean isPossible = true;
-
-        return isPossible;
-    }
-
-    public boolean isPromotionEligible(Promotion promotion,List<PromotionItemSKU> itemOrdered,Map<String,Integer> promotionAppliedItems){
-        boolean isEligible = true;
-
-        return isEligible;
     }
 
 
