@@ -23,6 +23,12 @@ public class PromotionCalculatorHelper {
         itemSkuDefaultPrices.put("D",15.0);
     }
 
+    /**
+     * This method is for checking the mutual exclusive items
+     * @param promotion
+     * @param promotionAppliedItems
+     * @return
+     */
     private boolean isPromotionMutualExclusive(Promotion promotion, Map<String,Integer> promotionAppliedItems){
         boolean isPossible = true;
         if(promotionAppliedItems !=null && !promotionAppliedItems.isEmpty()){
@@ -35,6 +41,13 @@ public class PromotionCalculatorHelper {
         return isPossible;
     }
 
+    /**
+     * This method is for checking whether based on ordered item and promotion configuration, promotion is eligible or not
+     * @param promotion
+     * @param itemOrdered
+     * @param promotionAppliedItems
+     * @return
+     */
     public boolean isPromotionEligible(Promotion promotion,List<PromotionItemSKU> itemOrdered,Map<String,Integer> promotionAppliedItems){
         boolean isEligible = false;
         if(isPromotionMutualExclusive(promotion,promotionAppliedItems)){
@@ -69,6 +82,13 @@ public class PromotionCalculatorHelper {
         return isEligible;
     }
 
+    /**
+     * This method is for calculating the final price applying the eligible promotions
+     * @param promotions
+     * @param itemsOrdered
+     * @param promotionAppliedItems
+     * @return
+     */
     public double calculateFinalPrice(List<Promotion> promotions,List<PromotionItemSKU> itemsOrdered,Map<String,Integer> promotionAppliedItems){
         AtomicReference<Double> finalPrice = new AtomicReference<>((double) 0);
         Map<String,Integer> itemPriceCalculated = new HashMap<String,Integer>();
@@ -95,7 +115,10 @@ public class PromotionCalculatorHelper {
                         remainingItems[0].put(itemEntry.getKey(),(itemEntry.getValue() - promotionalItems[0].get(itemEntry.getKey())));
                 });
 
+                //calculating applied promotion price
                 finalPrice.updateAndGet(v -> new Double((double) (v + promotion.getPromotionalPrice()*promotionApplicableTimes[0])));
+
+                //calculating remaining item price
                 remainingItems[0].entrySet().stream().forEach(remainingEntry->{
                     if(!itemPriceCalculated.containsKey(remainingEntry.getKey())) {
                         finalPrice.updateAndGet(v -> new Double((double) (v + (remainingEntry.getValue() * itemSkuDefaultPrices.get(remainingEntry.getKey())))));
@@ -105,6 +128,7 @@ public class PromotionCalculatorHelper {
             }
         });
 
+        //if any item not applicable for promotion apply then price calculation done here
         orderedItems.entrySet().stream().forEach(itemEntry->{
             if(!promotionalItems[0].containsKey(itemEntry.getKey()) && !itemPriceCalculated.containsKey(itemEntry.getKey())) {
                 finalPrice.updateAndGet(v -> new Double((double) (v + (itemEntry.getValue() * itemSkuDefaultPrices.get(itemEntry.getKey())))));
